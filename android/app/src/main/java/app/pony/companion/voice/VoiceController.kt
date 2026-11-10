@@ -724,6 +724,15 @@ object VoiceController {
             leaveOwnUi(app)
             val result = loop.run(text)
             if (!isCurrent(gen, taskId)) return@execute
+            if (result.status == "error" && !result.diagnostic.isNullOrBlank()) {
+                TaskRuntime.tracker.step(
+                    StepKind.Error,
+                    "Provider diagnostics",
+                    ok = false,
+                    detail = result.diagnostic,
+                    id = taskId,
+                )
+            }
             if (result.status == "capped") {
                 val steps = TaskRuntime.tracker.find(taskId)?.steps.orEmpty()
                 finish(app, taskId, TaskState.Failed, Outcomes.capped(result.steps, Outcomes.lastAction(steps)), source, resumable = true)
