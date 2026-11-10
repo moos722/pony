@@ -50,7 +50,7 @@ enum class ProviderPreset(
         "Google Gemini",
         "Google",
         ProviderKind.GEMINI,
-        "gemini-2.5-flash",
+        "gemini-3.8-flash",
         "https://generativelanguage.googleapis.com/v1beta",
         "https://aistudio.google.com/api-keys",
         "Gemini models from Google, running on this phone with your Google AI key.",
@@ -77,19 +77,17 @@ enum class ProviderPreset(
 
     companion object {
         /**
-         * The brains the Connect picker offers by name, in order. Each has a
-         * real key page and runs on the phone; OpenRouter and Custom stay under
-         * Advanced for people who want them.
+         * The brains the Connect picker offers by name, in order.
          */
-        val pickable: List<ProviderPreset> = listOf(ANTHROPIC, GEMINI, OPENAI, XAI)
+        val pickable: List<ProviderPreset> =
+            listOf(ANTHROPIC, GEMINI, OPENAI, XAI)
 
         /**
-         * Built-in defaults we've since replaced. A saved brain still on one of
-         * these never had its model hand-picked, so it rides the new default; a
-         * model the owner chose by hand is never in this list and stays untouched.
+         * Built-in defaults we've since replaced.
          */
         val supersededModels: Map<ProviderPreset, Set<String>> = mapOf(
             ANTHROPIC to setOf("claude-sonnet-4-5"),
+            GEMINI to setOf("gemini-2.5-flash"),
         )
     }
 }
