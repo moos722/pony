@@ -34,4 +34,5 @@ data class LoopResult(
     val status: String,
     val message: String,
     val steps: Int,
+    val diagnostic: String? = null,
 )

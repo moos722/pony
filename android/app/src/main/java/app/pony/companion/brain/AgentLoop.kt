@@ -50,7 +50,7 @@ class AgentLoop(
             val turn = when (val got = completeWithRetry(history)) {
                 is Attempt.Ok -> got.turn
                 Attempt.Stopped -> return LoopResult("stopped", "Stopped.", steps)
-                is Attempt.Failed -> return LoopResult("error", got.message, steps)
+                is Attempt.Failed -> return LoopResult("error", got.message, steps, got.diagnostic)
             }
             history += LoopMessage("assistant", turn.text, calls = turn.calls)
             if (turn.calls.isEmpty()) {
@@ -96,7 +96,7 @@ class AgentLoop(
     private sealed interface Attempt {
         data class Ok(val turn: ModelTurn) : Attempt
         data object Stopped : Attempt
-        data class Failed(val message: String) : Attempt
+        data class Failed(val message: String, val diagnostic: String?) : Attempt
     }
 
     /**
@@ -118,24 +118,39 @@ class AgentLoop(
                 val classified = BrainError.classify(err, now())
                 when (classified.kind) {
                     BrainError.Kind.RATE_LIMIT -> {
-                        if (rateAttempts >= rateLimitRetries) return Attempt.Failed(BrainError.message(err))
+                        if (rateAttempts >= rateLimitRetries) return failed(err, attempt, rateAttempts, rateWaited)
                         val remaining = BrainError.RATE_LIMIT_MAX_WAIT_MS - rateWaited
-                        if (remaining <= 0L) return Attempt.Failed(BrainError.message(err))
+                        if (remaining <= 0L) return failed(err, attempt, rateAttempts, rateWaited)
                         rateAttempts++
                         val delay = BrainError.waitMs(classified, rateAttempts, remaining, random)
-                        if (delay <= 0L) return Attempt.Failed(BrainError.message(err))
+                        if (delay <= 0L) return failed(err, attempt, rateAttempts, rateWaited)
                         if (!waitRateLimit(delay)) return Attempt.Stopped
                         rateWaited += delay
                     }
                     BrainError.Kind.TIMEOUT, BrainError.Kind.NETWORK -> {
-                        if (attempt >= retries) return Attempt.Failed(BrainError.message(err))
+                        if (attempt >= retries) return failed(err, attempt, rateAttempts, rateWaited)
                         attempt++
                         if (!waitBackoff(attempt)) return Attempt.Stopped
                     }
-                    else -> return Attempt.Failed(BrainError.message(err))
+                    else -> return failed(err, attempt, rateAttempts, rateWaited)
                 }
             }
         }
+    }
+
+
+    private fun failed(err: Exception, retries: Int, rateRetries: Int, rateWaitedMs: Long): Attempt.Failed {
+        val classification = BrainError.classify(err, now())
+        val http = err as? ProviderHttpException
+        val diagnostic = buildString {
+            if (http != null) append("HTTP ${http.status}") else append(err.javaClass.simpleName)
+            append("\nCategory: ${classification.kind}")
+            http?.retryAfter?.takeIf { it.isNotBlank() }?.let { append("\nRetry-After: $it") }
+            append("\nNetwork retries: $retries; rate-limit retries: $rateRetries")
+            if (rateWaitedMs > 0L) append("; waited: ${rateWaitedMs}ms")
+            http?.body?.takeIf { it.isNotBlank() }?.let { append("\nProvider response: ${it.take(300)}") }
+        }.take(900)
+        return Attempt.Failed(BrainError.message(err), diagnostic)
     }
 
     /** Sleeps the backoff for [attempt] in short slices so a Stop is noticed promptly. */
