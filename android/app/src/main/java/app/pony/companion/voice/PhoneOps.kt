@@ -39,7 +39,7 @@ object PhoneOps {
 
     fun screen(context: Context): ScreenView {
         val acted = ScreenRouter.tree(context, null)
-        val tree = (acted.fields["tree"] as? String)?.take(8_000) ?: "(accessibility is off)"
+        val tree = (acted.fields["tree"] as? String)?.take(5_000) ?: "(accessibility is off)"
         TaskRuntime.step(StepKind.Read, "Read the screen")
         return ScreenView(tree, screenshot(context))
     }
@@ -284,7 +284,7 @@ object PhoneOps {
     }
 
     private fun shrink(bytes: ByteArray): String? {
-        val bitmap = if (bytes.size <= 120_000) {
+        val bitmap = if (bytes.size <= 60_000) {
             null
         } else {
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
@@ -295,16 +295,16 @@ object PhoneOps {
         } else {
             val scaled = Bitmap.createScaledBitmap(
                 bitmap,
-                (bitmap.width * 0.45f).toInt().coerceAtLeast(1),
-                (bitmap.height * 0.45f).toInt().coerceAtLeast(1),
+                (bitmap.width * 0.35f).toInt().coerceAtLeast(1),
+                (bitmap.height * 0.35f).toInt().coerceAtLeast(1),
                 true,
             )
             val out = ByteArrayOutputStream()
-            scaled.compress(Bitmap.CompressFormat.JPEG, 45, out)
+            scaled.compress(Bitmap.CompressFormat.JPEG, 38, out)
             if (scaled != bitmap) scaled.recycle()
             bitmap.recycle()
             val data = out.toByteArray()
-            if (data.size > 180_000) null else Base64.encodeToString(data, Base64.NO_WRAP)
+            if (data.size > 120_000) null else Base64.encodeToString(data, Base64.NO_WRAP)
         }
         return encoded
     }
