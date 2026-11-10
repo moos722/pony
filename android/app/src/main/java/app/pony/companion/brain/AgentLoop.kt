@@ -144,11 +144,11 @@ class AgentLoop(
         val http = err as? ProviderHttpException
         val diagnostic = buildString {
             if (http != null) append("HTTP ${http.status}") else append(err.javaClass.simpleName)
-            append("\\nCategory: ${classification.kind}")
-            http?.retryAfter?.takeIf { it.isNotBlank() }?.let { append("\\nRetry-After: $it") }
-            append("\\nNetwork retries: $retries; rate-limit retries: $rateRetries")
+            append("\nCategory: ${classification.kind}")
+            http?.retryAfter?.takeIf { it.isNotBlank() }?.let { append("\nRetry-After: $it") }
+            append("\nNetwork retries: $retries; rate-limit retries: $rateRetries")
             if (rateWaitedMs > 0L) append("; waited: ${rateWaitedMs}ms")
-            http?.body?.takeIf { it.isNotBlank() }?.let { append("\\nProvider response: ${it.take(300)}") }
+            http?.body?.takeIf { it.isNotBlank() }?.let { append("\nProvider response: ${it.take(300)}") }
         }.take(900)
         return Attempt.Failed(BrainError.message(err), diagnostic)
     }
