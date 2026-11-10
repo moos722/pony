@@ -236,6 +236,15 @@ fun StepTimeline(
                         )
                         Text("+${elapsed(step.at - startedAt)}", style = Pony.type.caption, color = colors.inkFaint)
                     }
+                    step.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                        Text(
+                            detail,
+                            style = Pony.type.caption,
+                            color = colors.inkMuted,
+                            maxLines = 8,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     val shot = step.shot
                     if (shot != null) {
                         ShotThumb(shotFile(shot), onClick = { onShot(shot) })
